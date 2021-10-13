@@ -90,6 +90,16 @@ defmodule ExJira.Request do
   end
 
   @doc """
+  Sends a PUT request to the specified resource_path with the specified
+  query_params (as a string in the form "key1=val1&key2=val2") and the
+  specified payload.
+  """
+  @spec put(String.t(), String.t(), any()) :: request_response
+  def put(resource_path, query_params, payload) do
+    request("PUT", resource_path, query_params, Poison.encode!(payload))
+  end
+
+  @doc """
   Sends a request using the specified method to the specified resource_path
   with the specified query_params (as a string in the form "key1=val1&key2=val2")
   and the specified payload.
@@ -148,6 +158,9 @@ defmodule ExJira.Request do
   @spec httpotion_request(atom, String.t(), String.t(), String.t(), list) ::
           %HTTPotion.ErrorResponse{} | %HTTPotion.Response{}
   defp httpotion_request(client, "GET", url, _payload, opts), do: client.get(url, opts)
+
+  defp httpotion_request(client, "PUT", url, payload, opts),
+    do: client.put(url, [body: payload] ++ opts)
 
   defp httpotion_request(client, "POST", url, payload, opts),
     do: client.post(url, [body: payload] ++ opts)

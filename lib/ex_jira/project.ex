@@ -137,6 +137,23 @@ defmodule ExJira.Project do
   end
 
   @doc """
+  Updates a single issue based on specified ticket number.
+
+  ## Examples
+
+    iex> ExJira.Project.update_issue("ISSUE-1012")
+    {:ok, %{"id" => "1012"}}
+
+    iex> ExJira.Project.update_issue("ISSUE-1012", expand: "lead,url,description")
+    {:ok, %{"id" => "1012"}}
+
+  """
+  @spec update_issue(String.t(), any()) :: Request.request_response()
+  def update_issue(id, payload) do
+    Request.put("/issue/#{id}", "", payload)
+  end
+
+  @doc """
   Same as `get_issue/1` but raises error if it fails
 
   ## Examples
