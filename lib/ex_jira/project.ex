@@ -141,11 +141,8 @@ defmodule ExJira.Project do
 
   ## Examples
 
-    iex> ExJira.Project.update_issue("ISSUE-1012")
-    {:ok, %{"id" => "1012"}}
-
-    iex> ExJira.Project.update_issue("ISSUE-1012", expand: "lead,url,description")
-    {:ok, %{"id" => "1012"}}
+    iex> ExJira.Project.update_issue("ISSUE-1012", %{fields: %{summary: "Test 1212"}})
+    {:ok, "Request successful"}
 
   """
   @spec update_issue(String.t(), any()) :: Request.request_response()

@@ -130,6 +130,9 @@ defmodule ExJira.Request do
       %HTTPotion.Response{status_code: 404} ->
         {:error, "404 - Not Found"}
 
+      %HTTPotion.Response{status_code: 204} ->
+        {:ok, "Request successful"}
+
       %HTTPotion.Response{
         body: body,
         headers: %{hdrs: %{"content-type" => "application/json;charset=UTF-8"}}
