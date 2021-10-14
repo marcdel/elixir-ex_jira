@@ -86,7 +86,7 @@ defmodule ExJira.Request do
   """
   @spec post(String.t(), String.t(), String.t()) :: request_response
   def post(resource_path, query_params, payload) do
-    request("POST", resource_path, query_params, payload)
+    request("POST", resource_path, query_params, Poison.encode!(payload))
   end
 
   @doc """
@@ -126,6 +126,10 @@ defmodule ExJira.Request do
          ) do
       %HTTPotion.ErrorResponse{message: message} ->
         {:error, message}
+
+      %HTTPotion.Response{status_code: 400, body: body} ->
+        # decode could fail but meh?
+        {:error, Poison.decode!(body)}
 
       %HTTPotion.Response{status_code: 404} ->
         {:error, "404 - Not Found"}

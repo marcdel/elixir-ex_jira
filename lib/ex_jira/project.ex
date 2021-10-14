@@ -151,6 +151,28 @@ defmodule ExJira.Project do
   end
 
   @doc """
+  Creates a single issue with the specified parameters.
+
+  ## Examples
+
+    iex> ExJira.Project.create_issue(%{fields: %{project: %{id: "12345"}, summary: "Test 1212"}})
+    {:error, %{"errorMessages" => [], "errors" => %{"issuetype" => "Specify an issue type"}}}
+
+    iex> ExJira.Project.create_issue(%{fields: %{project: %{id: "12345"}, issuetype: %{id: "10001"}, summary: "Test 1212"}})
+    {:ok,
+      %{
+       "id" => "12345",
+       "key" => "ISSUE-1012",
+       "self" => "https://yourteam.atlassian.net/rest/api/latest/issue/12345"
+      }}
+
+  """
+  @spec create_issue(any()) :: Request.request_response()
+  def create_issue(payload) do
+    Request.post("/issue", "", payload)
+  end
+
+  @doc """
   Same as `get_issue/1` but raises error if it fails
 
   ## Examples
