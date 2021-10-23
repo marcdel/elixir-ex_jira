@@ -2,6 +2,8 @@ defmodule ExJira.Project do
   alias ExJira.QueryParams
   alias ExJira.Request
 
+  require OpenTelemetry.Tracer
+
   @moduledoc """
   Provides access to the Project resource.
   """
@@ -92,11 +94,13 @@ defmodule ExJira.Project do
   """
   @spec get_issues(String.t(), [{atom, String.t()}]) :: Request.request_response()
   def get_issues(id, query_params \\ []) do
-    Request.get_all(
-      "/search",
-      "issues",
-      "#{QueryParams.convert(query_params, @get_issues_params)}jql=project=#{id}"
-    )
+    OpenTelemetry.Tracer.with_span "ExJira.Project.get_issues" do
+      Request.get_all(
+        "/search",
+        "issues",
+        "#{QueryParams.convert(query_params, @get_issues_params)}jql=project=#{id}"
+      )
+    end
   end
 
   @doc """

@@ -6,6 +6,9 @@ defmodule ExJira.Request do
   All request functions return either {:ok, data} or {:error, reason}
   """
 
+  require OpenTelemetry.Tracer, as: Tracer
+  require OpenTelemetry.Span, as: Span
+
   @type request_response :: {:ok, any} | {:error, any}
 
   @spec jira_account :: String.t()
@@ -38,8 +41,10 @@ defmodule ExJira.Request do
   """
   @spec get_all(String.t(), String.t(), String.t()) :: request_response
   def get_all(resource_path, resource, query_params) do
-    request("GET", resource_path, query_params, "")
-    |> get_more([], resource_path, resource, query_params)
+    Tracer.with_span "ExJira.Request.get_all" do
+      request("GET", resource_path, query_params, "")
+      |> get_more([], resource_path, resource, query_params)
+    end
   end
 
   @doc """
@@ -65,18 +70,22 @@ defmodule ExJira.Request do
          resource,
          query_params
        ) do
-    items = response[resource]
+    Tracer.with_span "ExJira.Request.get_more" do
+      items = response[resource]
 
-    [eq: _, ins: request_path] =
-      String.myers_difference("https://#{jira_account()}/rest/api/latest", next_req)
+      [eq: _, ins: request_path] =
+        String.myers_difference("https://#{jira_account()}/rest/api/latest", next_req)
 
-    request("GET", request_path, "", "")
-    |> get_more(prev_items ++ items, resource_path, resource, query_params)
+      request("GET", request_path, "", "")
+      |> get_more(prev_items ++ items, resource_path, resource, query_params)
+    end
   end
 
   defp get_more({:ok, response}, prev_items, _, resource, _) do
-    items = response[resource]
-    {:ok, prev_items ++ items}
+    Tracer.with_span "ExJira.Request.get_more (no more)" do
+      items = response[resource]
+      {:ok, prev_items ++ items}
+    end
   end
 
   @doc """
@@ -115,36 +124,40 @@ defmodule ExJira.Request do
   """
   @spec request(String.t(), String.t(), String.t(), String.t()) :: request_response
   def request(method, resource_path, query_params, payload) do
-    url = {resource_path, query_params} |> build_request_url
-    auth = get_auth()
+    Tracer.with_span "ExJira.Request.request" do
+      url = {resource_path, query_params} |> build_request_url
+      auth = get_auth()
 
-    Logger.debug(fn -> "ExJira.Request: Sending #{method} to #{url} using #{jira_client()}" end)
+      Span.set_attributes(Tracer.current_span_ctx(), method: method, url: url)
 
-    case httpotion_request(jira_client(), method, url, payload,
-           timeout: jira_timeout(),
-           headers: ["Content-Type": "application/json", Authorization: auth]
-         ) do
-      %HTTPotion.ErrorResponse{message: message} ->
-        {:error, message}
+      Logger.debug(fn -> "ExJira.Request: Sending #{method} to #{url} using #{jira_client()}" end)
 
-      %HTTPotion.Response{status_code: 400, body: body} ->
-        # decode could fail but meh?
-        {:error, Poison.decode!(body)}
+      case httpotion_request(jira_client(), method, url, payload,
+             timeout: jira_timeout(),
+             headers: ["Content-Type": "application/json", Authorization: auth]
+           ) do
+        %HTTPotion.ErrorResponse{message: message} ->
+          {:error, message}
 
-      %HTTPotion.Response{status_code: 404} ->
-        {:error, "404 - Not Found"}
+        %HTTPotion.Response{status_code: 400, body: body} ->
+          # decode could fail but meh?
+          {:error, Poison.decode!(body)}
 
-      %HTTPotion.Response{status_code: 204} ->
-        {:ok, "Request successful"}
+        %HTTPotion.Response{status_code: 404} ->
+          {:error, "404 - Not Found"}
 
-      %HTTPotion.Response{
-        body: body,
-        headers: %{hdrs: %{"content-type" => "application/json;charset=UTF-8"}}
-      } ->
-        Poison.decode(body)
+        %HTTPotion.Response{status_code: 204} ->
+          {:ok, "Request successful"}
 
-      %HTTPotion.Response{headers: %{hdrs: %{"content-type" => content_type}}} ->
-        {:error, "Invalid content-type returned: #{content_type}"}
+        %HTTPotion.Response{
+          body: body,
+          headers: %{hdrs: %{"content-type" => "application/json;charset=UTF-8"}}
+        } ->
+          Poison.decode(body)
+
+        %HTTPotion.Response{headers: %{hdrs: %{"content-type" => content_type}}} ->
+          {:error, "Invalid content-type returned: #{content_type}"}
+      end
     end
   end
 

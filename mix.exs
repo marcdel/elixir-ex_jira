@@ -49,7 +49,11 @@ defmodule ExJira.Mixfile do
       {:earmark, "~> 1.2", only: :dev, runtime: false},
       {:ex_doc, "~> 0.19.1", only: :dev, runtime: false},
       {:excoveralls, "~> 0.10.3", only: :test},
-      {:credo, "~> 1.0.0", only: [:dev, :test], runtime: false}
+      {:credo, "~> 1.0.0", only: [:dev, :test], runtime: false},
+      {:opentelemetry_api,
+        github: "open-telemetry/opentelemetry-erlang",
+        sparse: "apps/opentelemetry_api",
+        override: true}
     ]
   end
 
